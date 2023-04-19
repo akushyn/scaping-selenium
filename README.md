@@ -24,6 +24,8 @@ cp env.example .env
 ```
 
 ### Run application
+
+Ensure, that `social-network` application is running
 ```
 cd scraping-selenium
 python3 app.py
