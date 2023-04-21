@@ -1,10 +1,12 @@
 import time
 
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common import keys
 from selenium.webdriver.common.by import By
 
 import config
+from decorators import social_login_required
 
 
 class SocialNetworkScraper:
@@ -13,15 +15,19 @@ class SocialNetworkScraper:
     LOGIN_URL = f"{BASE_URL}/auth/login"
     BLOG_URL = f"{BASE_URL}/user/blog"
 
-    def __init__(self):
-        self.driver = None
+    def __init__(self, driver=None):
+        self.driver = driver or self.create_driver()
+        self.is_logged_in = False
 
     def create_driver(self):
         """
         Create chrome driver instance
         """
         try:
-            self.driver = webdriver.Chrome(executable_path=config.CHROME_DRIVER_PATH)
+            options = Options()
+            options.add_argument("--start-maximized")
+
+            self.driver = webdriver.Chrome(executable_path=config.CHROME_DRIVER_PATH, options=options)
             return self.driver
         except Exception as e:
             print(e.args)
@@ -32,29 +38,25 @@ class SocialNetworkScraper:
         """
 
         # create driver & navigate to login page
-        driver = self.create_driver()
-        driver.get(self.LOGIN_URL)
+        self.driver.get(self.LOGIN_URL)
 
         # set username
-        username_elem = driver.find_element(By.XPATH, "//div[@class='form-group']/input[@id='username']")
+        username_elem = self.driver.find_element(By.XPATH, "//div[@class='form-group']/input[@id='username']")
         username_elem.send_keys(config.SOCIAL_NETWORK_LOGIN)
 
         # set password
-        password_elem = driver.find_element(By.XPATH, "//div[@class='form-group']/input[@id='password']")
+        password_elem = self.driver.find_element(By.XPATH, "//div[@class='form-group']/input[@id='password']")
         password_elem.send_keys(config.SOCIAL_NETWORK_PASSWORD)
 
         # log-in by pressing Enter
         password_elem.send_keys(keys.Keys.ENTER)
+        self.is_logged_in = True
 
-        return driver
-
-    def social_network_add_post(self, title, content, login_required=True):
+    @social_login_required
+    def social_network_add_post(self, title, content):
         """
         Create automated post on social-network
         """
-        if login_required:
-            self.driver = self.social_network_login()
-
         # navigate to user blog posts page
         self.driver.get(self.BLOG_URL)
         time.sleep(1)
